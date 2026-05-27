@@ -9,3 +9,5 @@ class FacturaCrear(BaseModel):
     cliente: str
     total: float 
     
+    
+    
