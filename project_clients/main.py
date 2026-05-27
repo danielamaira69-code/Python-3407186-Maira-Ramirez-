@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from modelo.clientes import Cliente, ClienteCrear, ClienteEditar, ClienteEliminar
+from modelo.factura import Factura, FacturaCrear
+
 
 app = FastAPI()
 
@@ -47,4 +49,21 @@ async def eliminar_clientes (id:int, datos_cliente: ClienteEliminar):
             cliente_eliminado = Lista_clientes.pop(i)
     return {"clientes": "cliente eliminado", "cliente": cliente_eliminado}    
 
+
+
+
+@app.get ("/factura/{cliente_id}", response_model= Factura)
+async def crear_facturas(cliente_id: int, datos_factura: FacturaCrear):
+    cliente_encontrado= None 
+    for c in Lista_clientes:
+        if c.id== cliente_id:
+            cliente_encontrado= c
+            break
+    if not cliente_encontrado:
+        raise HTTPException(
+            status_code=400,
+            detail= f"Cliente con id {cliente_id}, no existe debes crear. ", 
+        )
+        
+        
 
