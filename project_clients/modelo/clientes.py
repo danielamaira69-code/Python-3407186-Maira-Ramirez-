@@ -1,21 +1,20 @@
-from pydantic import BaseModel 
+from pydantic import BaseModel
 
-class ClienteBase(BaseModel):
+class ClienteBase (BaseModel):
+    #atribitos
     nombre: str
     edad: int
-    descripcion: str| None
+    descripcion: str | None
     
-class ClienteCrear (ClienteBase):
-    pass 
+class ClienteCrear(ClienteBase):
+    pass
 
 class ClienteEditar(ClienteBase):
     pass
 
-class ClienteEliminar(ClienteBase):
-    pass
 
 class Cliente(ClienteBase):
-    id : int | None = None
+    id : int | None = None 
 
 
     
