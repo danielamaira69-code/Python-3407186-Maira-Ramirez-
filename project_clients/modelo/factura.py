@@ -18,9 +18,9 @@ class FacturaEditar(FacturaBase):
     cliente_id: int
 
 class Factura(FacturaBase):
-    id: int | None = None
-    cliente: Cliente | None = None  
-    total: float | None = None
+    id: int | None 
+    cliente: Cliente | None
+    total: float | None
     
     
     

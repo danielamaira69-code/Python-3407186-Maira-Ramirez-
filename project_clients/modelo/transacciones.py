@@ -12,4 +12,4 @@ class editarTransacciones(TransaccionesBase):
     pass
 
 class Transacciones(TransaccionesBase):
-    id: int | None = None
+    id: int | None
