@@ -1,0 +1,58 @@
+from fastapi import APIRouter
+from ..modelos.clientes import  Cliente, ClienteCrear, ClienteEditar, ClienteEliminar
+from ..listas import lista_clientes
+from ..conexion_bd import Sesion_dependencia
+
+rutas_clientes = APIRouter()
+
+
+#CRUD CLIENTES
+
+#LISTAR CLIENTES
+@rutas_clientes.get("/clientes")
+async def listar_cliente():
+    #creacion de sms mas adecuado al usuario
+    if len(lista_clientes) > 0:
+       return{"Existen clientes": lista_clientes}
+    else:
+        return{"No existen clientes"}
+    
+#LISTAR CLIENTES POR ID
+@rutas_clientes.get("/clientes/{id}")
+async def listar_cliente(id:int, mi_sesion: Sesion_dependencia):
+    for cliente in lista_clientes:
+        if cliente.id == id:
+            return cliente
+
+    
+
+#CREAR CLIENTES
+
+@rutas_clientes.post("/clientes", response_model=Cliente)
+async def crear_clientes(datos_cliente:ClienteCrear, mi_sesion: Sesion_dependencia):
+    Cliente_val = Cliente.model_validate(datos_cliente.model_dump())
+    mi_sesion.add(Cliente_val)
+    mi_sesion.commit()
+    mi_sesion.refresh(Cliente_val)
+    return Cliente_val
+
+
+#EDITAR CLIENTES 
+@rutas_clientes.put("/cliente/{id}")
+async def editar_clientes(id:int, datos_cliente:ClienteEditar):
+    for i, obj_cliente in enumerate(lista_clientes):
+        if obj_cliente.id == id:
+            cliente_val = Cliente.model_validate(datos_cliente.model_dump())
+            cliente_val.id = id
+            lista_clientes[i] = cliente_val
+             
+    return {"mensaje": "Se acualizo correctamente el cliente", "Cliente": cliente_val}
+
+
+#ELIMINAR CLIENTES 
+@rutas_clientes.delete("/cliente/{id}")
+async def eliminar_clientes(id:int, datos_cliente:ClienteEliminar):
+    for i, obj_cliente in enumerate(lista_clientes):
+        if obj_cliente.id == id:
+            cliente_eliminado = lista_clientes.pop(i)
+    return {"Cliente": "Cliente elminado", "Cliente": cliente_eliminado}
