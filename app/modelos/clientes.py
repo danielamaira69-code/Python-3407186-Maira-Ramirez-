@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from sqlmodel import  SQLModel, Field, Relationship
 
+
 class ClienteBase(SQLModel):
     nombre: str = Field(default=None)
     edad: int = Field(default=None)
@@ -17,4 +18,9 @@ class ClienteEliminar(ClienteBase):
 
 class Cliente(ClienteBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    factura : list["Factura"] = Relationship(back_populates="cliente")
+
+class ClienteLeer (ClienteBase):
+    id: int 
+    
     
