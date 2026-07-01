@@ -1,10 +1,10 @@
 from pydantic import BaseModel
+from sqlmodel import SQLModel, Field, Relationship
 
-
-class TransaccionesBase(BaseModel):
+class TransaccionesBase(SQLModel):
     # atributos
-    cantidad: int
-    vr_unitario: float
+    cantidad: int=Field(default=0)
+    vr_unitario: float= Field(default=0.0)
     descripcion: str
 
 
@@ -16,6 +16,6 @@ class TransaccionesEditar(TransaccionesBase):
     pass
 
 
-class Transacciones(TransaccionesBase):
-    id: int | None = None
-    factura_id: int | None = None
+class Transacciones(TransaccionesBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    factura_id: int | None = Field(default=None, foreign_key="factura.id")

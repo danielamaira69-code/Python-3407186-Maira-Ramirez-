@@ -23,8 +23,8 @@ async def listar_cliente(id:int, mi_sesion: Sesion_dependencia):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Cliente no encontrado con el ID {id}")
     return cliente_list
 
-#CREAR CLIENTES
 
+#CREAR CLIENTES
 @rutas_clientes.post("/clientes", response_model=Cliente)
 async def crear_clientes(datos_cliente:ClienteCrear, mi_sesion: Sesion_dependencia):
     Cliente_val = Cliente.model_validate(datos_cliente.model_dump())
