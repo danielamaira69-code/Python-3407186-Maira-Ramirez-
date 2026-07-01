@@ -13,14 +13,12 @@ rutas_transacciones = APIRouter()
 
 
 #CRUD TRANSACCIONES 
-
 @rutas_transacciones.get("/transacciones", response_model=list[Transacciones])
 async def listar_transacciones(sesion :Sesion_dependencia):
     #consulta = select (Transacciones)
     #lista_transacciones=sesion.exec(consulta).all()
     #return lista_transacciones
     return sesion.exec(select(Transacciones)).all()
-
 
 @rutas_transacciones.get("/transacciones/{id_transaccion}", response_model=Transacciones)
 async def listar_transacciones(id_transaccion: int):
@@ -29,10 +27,10 @@ async def listar_transacciones(id_transaccion: int):
 
 @rutas_transacciones.post("/transacciones/{factura_id}")
 async def crear_transaccion(
-    factura_id: int, datos_transaccion: TransaccionesCrear, sesion: Sesion_dependencia):
-    cliente_encontrado = sesion.get(Factura,factura_id)
+    factura_id: int, datos_transaccion: TransaccionesCrear, cliente_id: int, sesion: Sesion_dependencia):
+    factura_encontrada = sesion.get(Factura,factura_id)
 #EXCEPCION
-    if not cliente_encontrado:
+    if not factura_encontrada:
         raise HTTPException(
             status_code=400,
             detail=f"Error 400: No existe un cliente con ese id: {cliente_id}, debes crear el cliente.",
@@ -44,91 +42,57 @@ async def crear_transaccion(
     sesion.commit()
     sesion.refresh(transaccion_val)
     return transaccion_val
+        
+        
 
-
-
-    factura_encontrada = None
-    for f in lista_facturas:
-        if f.id == factura_id:
-            factura_encontrada = f
-            break
-        
-    if factura_encontrada:
-        if factura_encontrada.cliente.id == cliente_id:
-            transaccion_val = Transacciones.model_validate(
-                datos_transaccion.model_dump()
-            )
-            transaccion_val.id = len(lista_transacciones) + 1
-            transaccion_val.factura_id = factura_id
-            lista_transacciones.append(transaccion_val)
-
-            factura_encontrada.transacciones.append(transaccion_val)
-            mensaje = f"Transaccion agregada a factura {factura_encontrada.id}"
-            factura_final = factura_encontrada
-            return {"mensaje": mensaje, "factura": factura_final}
-        else:
-            mensaje = f"Se encontro la factura de id: {factura_id}, pero es de otro cliente id: {cliente_id}"
-            factura_final = factura_encontrada
-            return {"mensaje": mensaje, "factura encontrada": factura_final}
-    else:
-        transaccion_val = Transacciones.model_validate(datos_transaccion.model_dump())
-        transaccion_val.id = len(lista_transacciones) + 1
-        transaccion_val.factura_id = len(lista_facturas) + 1
-        
-        factura = FacturaCrear(
-            cliente=cliente_encontrado,
-            fecha=str(datetime.now()),
-            transacciones=[transaccion_val],
-        
-        )
-            
-        factura_val = Factura.model_validate(factura.model_dump())
-        factura_val.id = len(lista_facturas) + 1
-        lista_facturas.append(factura_val)
-        
-        lista_transacciones.append(transaccion_val)
-
-        return {
-            "mensaje": f"Factura no existe con el id: {factura_id}, pero se creo la nueva factura",
-            "facturas": transaccion_val,
-        }
-        
-        
-@rutas_transacciones.put("/factura/{id}/transacciones/{transacciones_id}")
-async def editar_transaccion(id: int,transacciones_id: int, datos_transaccion:TransaccionesEditar):
-    factura = next((f for f in lista_facturas if f.id == id), None)
+@rutas_transacciones.put("/factura/{id}/transacciones/{transacciones_id}", response_model=Transacciones)
+async def editar_transaccion(id: int,transacciones_id: int, datos_transaccion:TransaccionesEditar, sesion: Sesion_dependencia):
     
-    if factura is None:
-        return JSONResponse(
+    factura=  sesion.get(Factura,id)
+    
+    if not factura:
+        raise HTTPException(
             status_code=404,
-            content={"error": "Factura no encontrada"}
+            detail="Factura no encontrada"
         )
-        
-    for t in factura.transacciones:
-        if t.id == transacciones_id:
-            t.cantidad = datos_transaccion.cantidad
-            t.vr_unitario = datos_transaccion.vr_unitario
-            t.descripcion = datos_transaccion.descripcion
-            
-            factura.total = factura.valor_total
-            return {"mensaje": "Transaccion actualizada", "factura": factura}
-        
-    return {"mensaje": "transaccion no encontrada"}
+    transaccion = sesion.get (Transacciones, transacciones_id)
+
+    if not transaccion:
+        raise HTTPException(
+            status_code=400,
+            detail="la transacion no pertenece a esa factura"
+        )
+    
+    datos = datos_transaccion.model_dump()
+    sesion.add(transaccion)
+    sesion.commit()
+    sesion.refresh(transaccion)
+    return transaccion
+
+
 
 @rutas_transacciones.delete("/factura/{id}/transacciones/{transacciones_id}")
-async def eliminar_transacciones(id: int, transacciones_id: int):
-    factura = next((f for f in lista_facturas if f.id == id), None)
-    
-    if factura is None:
-        return JSONResponse(
+async def eliminar_transacciones(id: int, transacciones_id: int,sesion: Sesion_dependencia):
+    factura= sesion.get(Factura, id)
+
+    if not factura:
+        raise HTTPException(
             status_code=404,
-            content={"error": "factura no encontrada"}
+            detail="factura no encontrada"
         )
+    transaccion= sesion.get (Transacciones, transacciones_id)
         
-    for t in factura.transacciones:
-        if t.id == transacciones_id:
-            factura.transacciones.remove(t)
-            factura.total = factura.valor_total
-            return {"mensaje": "transaccion eliminada", "factura": factura}
+    if not factura:
+        raise transaccion(
+            status_code=404,
+            detail="transaccion no encontrada"
+        )
+    if transaccion.factura_id != factura.id:
+        raise HTTPException(
+            status_code=400,
+            detail="la transaccion no pertenece a esa factura"
+        )
+    sesion.delete(transaccion)
+    sesion.commit()
         
-    return {"mensaje": "Transaccion no encontrada"}
+    return {"mensaje": "Transaccion eliminada correctamente"}
