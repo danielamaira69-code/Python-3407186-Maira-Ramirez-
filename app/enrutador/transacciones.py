@@ -6,7 +6,8 @@ from ..modelos.facturas import Factura, FacturaCrear
 from .clientes import lista_clientes
 from .facturas import lista_facturas
 from ..listas import lista_clientes, lista_facturas, lista_transacciones
-
+from ..conexion_bd import Sesion_dependencia
+from sqlmodel import select
 
 rutas_transacciones = APIRouter()
 
@@ -14,28 +15,37 @@ rutas_transacciones = APIRouter()
 #CRUD TRANSACCIONES 
 
 @rutas_transacciones.get("/transacciones", response_model=list[Transacciones])
-async def listar_transacciones():
-    return lista_transacciones
+async def listar_transacciones(sesion :Sesion_dependencia):
+    #consulta = select (Transacciones)
+    #lista_transacciones=sesion.exec(consulta).all()
+    #return lista_transacciones
+    return sesion.exec(select(Transacciones)).all()
+
+
+@rutas_transacciones.get("/transacciones/{id_transaccion}", response_model=Transacciones)
+async def listar_transacciones(id_transaccion: int):
+    pass
+
 
 @rutas_transacciones.post("/transacciones/{factura_id}")
 async def crear_transaccion(
-    factura_id: int, datos_transaccion: TransaccionesCrear, cliente_id: int
-):
-    cliente_encontrado = None
-    for c in lista_clientes:
-        if c.id == cliente_id:
-            cliente_encontrado = c
-            break
-        
-        
+    factura_id: int, datos_transaccion: TransaccionesCrear, sesion: Sesion_dependencia):
+    cliente_encontrado = sesion.get(Factura,factura_id)
 #EXCEPCION
     if not cliente_encontrado:
         raise HTTPException(
             status_code=400,
             detail=f"Error 400: No existe un cliente con ese id: {cliente_id}, debes crear el cliente.",
         )
-        
-#CONSULTA A LA FACTURA
+    transaccion_dictr = datos_transaccion.model_dump()
+    transaccion_dictr["factura_id"]= factura_id 
+    transaccion_val = Transacciones.model_validate(transaccion_dictr)
+    sesion.add(transaccion_val)
+    sesion.commit()
+    sesion.refresh(transaccion_val)
+    return transaccion_val
+
+
 
     factura_encontrada = None
     for f in lista_facturas:
